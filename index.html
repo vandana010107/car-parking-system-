@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bluetooth-Based Smart Parking System</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Notification Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Browser Compatibility Warning (Shown if Web Bluetooth unavailable) -->
+  <div id="browser-warning" class="browser-warning hidden">
+    <div class="warning-content">
+      <svg class="icon-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>Web Bluetooth is not supported in this browser. Please use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on Desktop or Android.</span>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- Main Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M7 15h10"/>
+            <path d="M9 9h3a2 2 0 0 1 0 4H9V9z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">Bluetooth-Based Smart Parking System</h1>
+          <p class="app-subtitle">Real-Time Parking Slot Monitoring & Automated Gate Control</p>
+        </div>
+      </div>
+      <div class="header-badge">
+        <span class="badge-tag">ESP32 IoT Project</span>
+      </div>
+    </header>
+
+    <!-- Top Connection Section -->
+    <section class="card connection-card">
+      <div class="connection-header">
+        <div class="connection-info">
+          <div class="bluetooth-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m7 7 10 10-5 5V2l5 5L7 17"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">ESP32 Bluetooth Connection</h2>
+            <p class="device-target">Target Device: <strong>Smart_Parking_ESP32</strong></p>
+          </div>
+        </div>
+
+        <div class="connection-status-group">
+          <!-- Connection Badge & Live Indicator -->
+          <div class="status-indicators">
+            <div id="connection-badge" class="connection-badge disconnected">
+              <span class="status-dot"></span>
+              <span id="connection-text">Disconnected</span>
+            </div>
+
+            <div id="live-indicator" class="live-indicator disconnected">
+              <span class="live-dot"></span>
+              <span id="live-text">● DISCONNECTED</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="connection-actions">
+            <button id="btn-connect" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+              CONNECT ESP32
+            </button>
+
+            <button id="btn-demo" class="btn btn-demo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              TRY DEMO MODE
+            </button>
+
+            <button id="btn-disconnect" class="btn btn-danger hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              DISCONNECT
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Notice Banner (Disconnection / System State) -->
+      <div id="system-notice" class="system-notice warning hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="notice-message">ESP32 disconnected. Please click "CONNECT ESP32" to reconnect.</span>
+      </div>
+    </section>
+
+    <!-- Dynamic Parking Status Banner (Full or Available count) -->
+    <div id="parking-banner" class="parking-banner banner-available">
+      <div class="banner-icon">
+        <svg id="banner-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="banner-text">
+        <h3 id="banner-title">Parking Spaces Available</h3>
+        <p id="banner-subtitle">2 parking slots available</p>
+      </div>
+    </div>
+
+    <!-- Parking Summary Cards Grid -->
+    <section class="summary-grid">
+      
+      <!-- Total Slots Card -->
+      <div class="card summary-card">
+        <div class="card-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 21V9"/>
+          </svg>
+        </div>
+        <div class="card-details">
+          <span class="card-label">TOTAL SLOTS</span>
+          <span class="card-value" id="val-total-slots">2</span>
+        </div>
+      </div>
+
+      <!-- Available Slots Card -->
+      <div class="card summary-card">
+        <div class="card-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="card-details">
+          <span class="card-label">AVAILABLE SLOTS</span>
+          <span class="card-value text-green" id="val-available-slots">--</span>
+        </div>
+      </div>
+
+      <!-- Occupied Slots Card -->
+      <div class="card summary-card">
+        <div class="card-icon red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div class="card-details">
+          <span class="card-label">OCCUPIED SLOTS</span>
+          <span class="card-value text-red" id="val-occupied-slots">--</span>
+        </div>
+      </div>
+
+      <!-- Gate Status Card -->
+      <div class="card summary-card">
+        <div class="card-icon orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 21V3h16v18"/>
+            <path d="M4 12h16"/>
+          </svg>
+        </div>
+        <div class="card-details">
+          <span class="card-label">GATE STATUS</span>
+          <span class="card-value" id="val-gate-status">--</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Main Content Split Grid (Slots, Gate Control & Visual) -->
+    <div class="dashboard-main-grid">
+      
+      <!-- Left Column: Individual Parking Slots -->
+      <div class="slots-column">
+        
+        <!-- Slot 1 Card -->
+        <div class="card slot-card" id="slot-card-1">
+          <div class="slot-header">
+            <div class="slot-title-group">
+              <span class="slot-number-badge">01</span>
+              <div>
+                <h3 class="slot-title">PARKING SLOT 1</h3>
+                <p class="sensor-info">HC-SR04 • TRIG GPIO 5 / ECHO GPIO 18</p>
+              </div>
+            </div>
+            <div class="slot-status-pill available" id="slot-1-pill">
+              AVAILABLE
+            </div>
+          </div>
+          <div class="slot-visual-box">
+            <div class="car-illustration" id="slot-1-illustration">
+              <svg viewBox="0 0 100 60" class="car-svg">
+                <rect x="10" y="25" width="80" height="22" rx="6" fill="currentColor"/>
+                <path d="M25 25 L35 10 L65 10 L75 25 Z" fill="currentColor"/>
+                <circle cx="25" cy="47" r="7" fill="#1e293b"/>
+                <circle cx="75" cy="47" r="7" fill="#1e293b"/>
+                <circle cx="25" cy="47" r="3" fill="#cbd5e1"/>
+                <circle cx="75" cy="47" r="3" fill="#cbd5e1"/>
+              </svg>
+              <span class="car-label" id="slot-1-car-label">No Vehicle</span>
+            </div>
+            <button id="btn-toggle-slot1" class="btn btn-outline btn-sm slot-toggle-btn hidden" title="Toggle car presence in Demo Mode">🚘 Toggle Vehicle</button>
+          </div>
+        </div>
+
+        <!-- Slot 2 Card -->
+        <div class="card slot-card" id="slot-card-2">
+          <div class="slot-header">
+            <div class="slot-title-group">
+              <span class="slot-number-badge">02</span>
+              <div>
+                <h3 class="slot-title">PARKING SLOT 2</h3>
+                <p class="sensor-info">HC-SR04 • TRIG GPIO 19 / ECHO GPIO 21</p>
+              </div>
+            </div>
+            <div class="slot-status-pill available" id="slot-2-pill">
+              AVAILABLE
+            </div>
+          </div>
+          <div class="slot-visual-box">
+            <div class="car-illustration" id="slot-2-illustration">
+              <svg viewBox="0 0 100 60" class="car-svg">
+                <rect x="10" y="25" width="80" height="22" rx="6" fill="currentColor"/>
+                <path d="M25 25 L35 10 L65 10 L75 25 Z" fill="currentColor"/>
+                <circle cx="25" cy="47" r="7" fill="#1e293b"/>
+                <circle cx="75" cy="47" r="7" fill="#1e293b"/>
+                <circle cx="25" cy="47" r="3" fill="#cbd5e1"/>
+                <circle cx="75" cy="47" r="3" fill="#cbd5e1"/>
+              </svg>
+              <span class="car-label" id="slot-2-car-label">No Vehicle</span>
+            </div>
+            <button id="btn-toggle-slot2" class="btn btn-outline btn-sm slot-toggle-btn hidden" title="Toggle car presence in Demo Mode">🚘 Toggle Vehicle</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Gate Control & Visual Parking Area -->
+      <div class="control-column">
+        
+        <!-- Parking Gate Control Card -->
+        <div class="card gate-control-card">
+          <div class="card-header">
+            <div class="header-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 21V3h16v18"/>
+                <path d="M4 12h16"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="card-title">PARKING GATE CONTROL</h3>
+              <p class="card-subtitle">SG90 Servo Motor • Signal GPIO 27</p>
+            </div>
+          </div>
+
+          <div class="gate-status-display">
+            <span class="gate-status-label">Current Gate Position:</span>
+            <div id="gate-badge-display" class="gate-status-badge closed">
+              CLOSED
+            </div>
+          </div>
+
+          <div class="gate-actions">
+            <button id="btn-open-gate" class="btn btn-gate btn-open" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+              OPEN GATE
+            </button>
+
+            <button id="btn-close-gate" class="btn btn-gate btn-close" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              CLOSE GATE
+            </button>
+          </div>
+
+          <div class="gate-info-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span>Commands are sent via BLE Command Characteristic. The UI updates when the ESP32 confirms the gate status.</span>
+          </div>
+        </div>
+
+        <!-- 2D Visual Parking Layout -->
+        <div class="card visual-layout-card">
+          <div class="card-header">
+            <h3 class="card-title">Visual Parking Area Layout</h3>
+          </div>
+
+          <div class="parking-lot-visual">
+            <div class="parking-lot-header">
+              <span>🅿️ PARKING AREA</span>
+            </div>
+            <div class="slots-visual-container">
+              
+              <!-- Slot 1 Box -->
+              <div class="slot-box available" id="viz-slot-1">
+                <div class="slot-box-number">SLOT 1</div>
+                <div class="slot-box-content">
+                  <div class="car-parking-icon">🚘</div>
+                  <span class="slot-box-status" id="viz-slot-1-text">FREE</span>
+                </div>
+              </div>
+
+              <!-- Slot 2 Box -->
+              <div class="slot-box available" id="viz-slot-2">
+                <div class="slot-box-number">SLOT 2</div>
+                <div class="slot-box-content">
+                  <div class="car-parking-icon">🚘</div>
+                  <span class="slot-box-status" id="viz-slot-2-text">FREE</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Gate Entrance Graphic -->
+            <div class="gate-entrance-visual">
+              <div class="gate-post left"></div>
+              <div class="gate-barrier-container">
+                <div class="gate-arm closed" id="viz-gate-arm">
+                  <span class="gate-arm-stripes"></span>
+                  <span class="gate-arm-label">GATE CLOSED</span>
+                </div>
+              </div>
+              <div class="gate-post right"></div>
+              <span class="entrance-label">🚧 ENTRANCE GATE</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Recent Activity Log Section -->
+    <section class="card activity-card">
+      <div class="activity-header">
+        <div class="activity-title-group">
+          <div class="activity-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="12 8 12 12 14 14"/>
+              <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="card-title">Recent Activity Log</h3>
+            <p class="card-subtitle">Real-Time Sensor & Gate Events Transmitted by ESP32</p>
+          </div>
+        </div>
+        <button id="btn-clear-log" class="btn btn-outline btn-sm">Clear Log</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="activity-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Event Source</th>
+              <th>Status Payload</th>
+              <th>System Impact</th>
+            </tr>
+          </thead>
+          <tbody id="activity-log-body">
+            <tr class="empty-row">
+              <td colspan="4">No BLE events recorded yet. Connect ESP32 to receive real-time data logs.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Technical BLE Diagnostics Accordion / Spec Card -->
+    <section class="card spec-card">
+      <div class="spec-header" id="spec-header-toggle">
+        <div class="spec-title-group">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <h3>ESP32 Hardware & BLE Technical Specifications</h3>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="spec-content" id="spec-content">
+        <div class="spec-grid">
+          <div class="spec-item">
+            <span class="spec-key">Device Name:</span>
+            <code class="spec-val">Smart_Parking_ESP32</code>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">BLE Service UUID:</span>
+            <code class="spec-val">4fafc201-1fb5-459e-8fcc-c5c9c331914b</code>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Status Characteristic (READ/NOTIFY):</span>
+            <code class="spec-val">beb5483e-36e1-4688-b7f5-ea07361b26a8</code>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Command Characteristic (WRITE):</span>
+            <code class="spec-val">6e400002-b5a3-f393-e0a9-e50e24dcca9e</code>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Slot 1 Hardware Pins:</span>
+            <span class="spec-val">HC-SR04 TRIG → GPIO 5, ECHO → GPIO 18</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Slot 2 Hardware Pins:</span>
+            <span class="spec-val">HC-SR04 TRIG → GPIO 19, ECHO → GPIO 21</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Servo Gate Motor Pin:</span>
+            <span class="spec-val">SG90 Signal → GPIO 27</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Safety Circuitry:</span>
+            <span class="spec-val">Voltage-divider resistors on HC-SR04 ECHO lines</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>Bluetooth-Based Smart Parking System &bull; ESP32 Hardware Web Dashboard &bull; Web Bluetooth API Integration</p>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
